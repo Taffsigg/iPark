@@ -434,6 +434,8 @@ class Stratek{
             include "cms/backups.php";
         } elseif(isset($_GET['statistics'])){
             include "cms/statistics.php";
+        } elseif(isset($_GET['monitoring'])){
+            include "cms/monitoring.php";
         } else {
             include "cms/dashboard.php";
         }
@@ -1469,6 +1471,8 @@ class Stratek{
             include "user/profile.php";
         }elseif (isset($_GET['passwd'])) {
             include "user/password.php";
+        }elseif(isset($_GET['monitoring'])){
+            include "user/monitoring.php";
         }else {
             include "user/dashboard.php";   
         }
@@ -5966,5 +5970,35 @@ class Stratek{
         $_SESSION['splitTid'] = $ptid;
         $_SESSION['vtable'] = $ptid;
         echo 1;
+    }
+
+    function addDeviceData(){
+        $captured_image = $this->sanitize($_POST['captured_image']);
+        $processed_image = $this->sanitize($_POST['processed_image']);
+
+        $curDate = date("Y-m-d");
+
+        //checking if image has already been captured
+        $query = "select * from captured_images where Date(date)=? and processed_image=?";
+        $res = $this->con->prepare($query);
+        $res->execute(array($curDate, $processed_image));
+        if($res->rowCount() < 1){
+            // new data
+            $sql = "insert into captured_images(captured_image, processed_image) values(?, ?)";
+            $result = $this->con->prepare($sql);
+            $result->execute(array($captured_image, $processed_image));
+        }
+    }
+
+    function getLatestCapturedImage(){
+        $data = array();
+        $sql = "select * from captured_images order by date desc limit 1";
+        $result = $this->con->query($sql);
+        $result = $result->fetch();
+
+        $data['captured_image'] = $result[1];
+        $data['processed_image'] = $result[2];
+        $data['date'] = $result[4];
+        echo json_encode($data);
     }
 }//end class

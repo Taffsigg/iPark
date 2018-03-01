@@ -43,6 +43,7 @@
             </span>
           </a>
         </li> -->
+        <li><a href="?monitoring"><i class="fa fa-camera"></i> Monitoring</a></li>
         <li class="treeview">
           <a href="#">
             <i class="fa fa-book"></i>

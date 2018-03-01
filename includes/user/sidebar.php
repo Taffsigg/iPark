@@ -36,6 +36,7 @@
             </span>
           </a>
         </li>
+        <li><a href="?monitoring"><i class="fa fa-camera"></i> Monitoring</a></li>
       </ul>
     </section>
     <!-- /.sidebar -->

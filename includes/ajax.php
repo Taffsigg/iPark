@@ -12,5 +12,9 @@
         $ajax->unlockSession($_POST['unlock']);
     }elseif(isset($_POST['lock'])){
         $ajax->lockSession();
+    }elseif(isset($_POST['device_data'])){
+        $ajax->addDeviceData();
+    }elseif(isset($_POST['get_processed_image'])){
+        $ajax->getLatestCapturedImage();
     }
 ?>
