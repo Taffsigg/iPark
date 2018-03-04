@@ -16,5 +16,9 @@
         $ajax->addDeviceData();
     }elseif(isset($_POST['get_processed_image'])){
         $ajax->getLatestCapturedImage();
+    }elseif(isset($_POST['processCheckOut'])){
+        $ajax->processCheckOut();
+    }elseif(isset($_POST['loadTransactions'])){
+        $ajax->loadTransactions($_POST['loadTransactions'], $_POST['start'], $_POST['end']);
     }
 ?>

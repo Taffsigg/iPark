@@ -43,7 +43,13 @@
             </span>
           </a>
         </li> -->
-        <li><a href="?monitoring"><i class="fa fa-camera"></i> Monitoring</a></li>
+        <li class="treeview">
+          <a href="?monitoring">
+            <i class="fa fa-camera"></i> <span> Monitoring</span>
+            <span class="pull-right-container">
+            </span>
+          </a>
+        </li>
         <li class="treeview">
           <a href="#">
             <i class="fa fa-book"></i>
@@ -53,8 +59,8 @@
             </span>
           </a>
           <ul class="treeview-menu">
-            <!-- <li><a href="?existingOrdersReport"><i class="fa fa-circle-o text-red"></i> Existing Orders</a></li>
-              <li><a href="?receiptReport"><i class="fa fa-circle-o text-green"></i> Processed Bill Receipt</a></li>
+            <li><a href="?transactions"><i class="fa fa-circle-o text-red"></i> Transactions</a></li>
+            <!-- <li><a href="?receiptReport"><i class="fa fa-circle-o text-green"></i> Processed Bill Receipt</a></li>
               <li><a href="?summaryReport"><i class="fa fa-circle-o text-blue"></i> Summary Report</a></li> -->
           </ul>
         </li>
@@ -67,8 +73,8 @@
             </span>
           </a>
           <ul class="treeview-menu">
-            <!-- <li><a href="?billingParams"><i class="fa fa-circle-o text-red"></i> Billing Params</a></li>
-            <li><a href="?menu"><i class="fa fa-circle-o text-green"></i> Menu</a></li>
+            <li><a href="?service_charge"><i class="fa fa-circle-o text-red"></i> Service charge</a></li>
+            <!-- <li><a href="?menu"><i class="fa fa-circle-o text-green"></i> Menu</a></li>
             <li><a href="?tax"><i class="fa fa-circle-o text-blue"></i> Tax/Service Charge</a></li> -->
             <li><a href="?printer"><i class="fa fa-circle-o text-yellow"></i> Printer Configuration</a></li>
           </ul>

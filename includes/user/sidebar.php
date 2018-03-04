@@ -36,7 +36,20 @@
             </span>
           </a>
         </li>
-        <li><a href="?monitoring"><i class="fa fa-camera"></i> Monitoring</a></li>
+        <li class="treeview">
+          <a href="?monitoring">
+            <i class="fa fa-camera"></i> <span>Monitoring</span>
+            <span class="pull-right-container">
+            </span>
+          </a>
+        </li>
+        <li class="treeview">
+          <a href="?transactions">
+            <i class="fa fa-credit-card"></i> <span>Transactions</span>
+            <span class="pull-right-container">
+            </span>
+          </a>
+        </li>
       </ul>
     </section>
     <!-- /.sidebar -->

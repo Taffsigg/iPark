@@ -436,7 +436,11 @@ class Stratek{
             include "cms/statistics.php";
         } elseif(isset($_GET['monitoring'])){
             include "cms/monitoring.php";
-        } else {
+        } elseif(isset($_GET['transactions'])){
+            include "cms/transactions.php";
+        } elseif(isset($_GET['service_charge'])){
+            include "cms/service_charge.php";
+        }else {
             include "cms/dashboard.php";
         }
     }
@@ -1078,20 +1082,8 @@ class Stratek{
     {
         $pid = $this->sanitize($pid);
         $table = $this->sanitize($table);
-        if ($table == 'billing_params' || $table == "billing_params_categories" || $table == "food" || $table == "drinks" || $table == "food_subcategory" || $table == "drinks_subcategory") {
-            $sql = "update " . $table . " set status=(status + 1)%2 where id=?";
-        } elseif ($table == "orders") {
-            $pid = $_SESSION['billingParamsCategories'];
-            $sql = "update orders set status=1 where billing_params_categories=? and pending=1 and bill_process=0";
-            $query = "select * from orders where billing_params_categories=? and pending=1 and bill_process=0";
-            $res = $this->con->prepare($query);
-            $res->execute(array($pid));
-            if ($res->rowCount() >= 1) {
-                //disable that menu item
-                $query1 = "update billing_params_categories set status=0 where id=?";
-                $res1 = $this->con->prepare($query1);
-                $res1->execute(array($pid));
-            }
+        if ($table == 'captured_images') {
+            $sql = "update " . $table . " set status=1 where id=?";
         } else {
             $sql = "update " . $table . " set status=(status + 1)%2 where pid=?";
         }
@@ -1187,7 +1179,7 @@ class Stratek{
     {
         $pid = $this->sanitize($pid);
         $table = $this->sanitize($table);
-        if ($table == 'billing_params' || $table == "billing_params_categories" || $table == "food" || $table == "drinks" || $table == "food_subcategory" || $table == "drinks_subcategory") {
+        if ($table == 'transactions') {
             $sql = "update " . $table . " set status=2 where id=?";
         } elseif ($table == "orders" || $table == 'split_bill' || $table == 'merge_bill' || $table == "sysbackup" || $table == "dbbackup") {
             $sql = "delete from " . $table . " where id=?";
@@ -1473,6 +1465,8 @@ class Stratek{
             include "user/password.php";
         }elseif(isset($_GET['monitoring'])){
             include "user/monitoring.php";
+        }elseif(isset($_GET['transactions'])){
+            include "user/transactions.php";
         }else {
             include "user/dashboard.php";   
         }
@@ -5976,18 +5970,18 @@ class Stratek{
         $captured_image = $this->sanitize($_POST['captured_image']);
         $processed_image = $this->sanitize($_POST['processed_image']);
 
-        $curDate = date("Y-m-d");
+        //$curDate = date("Y-m-d");
 
         //checking if image has already been captured
-        $query = "select * from captured_images where Date(date)=? and processed_image=?";
-        $res = $this->con->prepare($query);
-        $res->execute(array($curDate, $processed_image));
-        if($res->rowCount() < 1){
+        // $query = "select * from captured_images where Date(date)=? and processed_image=?";
+        // $res = $this->con->prepare($query);
+        // $res->execute(array($curDate, $processed_image));
+        // if($res->rowCount() < 1){
             // new data
             $sql = "insert into captured_images(captured_image, processed_image) values(?, ?)";
             $result = $this->con->prepare($sql);
             $result->execute(array($captured_image, $processed_image));
-        }
+        // }
     }
 
     function getLatestCapturedImage(){
@@ -6001,4 +5995,153 @@ class Stratek{
         $data['date'] = $result[4];
         echo json_encode($data);
     }
+
+    function computeMinutes($date1, $date2){
+        $date1 = $this->sanitize($date1);
+        $date2 = $this->sanitize($date2);
+        return round(abs(strtotime($date2) - strtotime($date1)) / 60, 2);
+    }
+
+    function getServiceCharge(){
+        $sql = "select * from service_charge limit 1";
+        $result = $this->con->query($sql);
+        return $result->fetch();
+    }
+
+
+    function processCheckOut(){
+        $data = array();
+        $curDate = $this->genDate();
+        $plate = $this->sanitize($_POST['plate']);
+        $sql = "select * from captured_images where processed_image=? and status=0 order by date desc limit 1";
+        $result = $this->con->prepare($sql);
+        $result->execute(array($plate));
+        $result = $result->fetch();
+
+        // computing number of minutes
+        $minutes = $this->computeMinutes($result[4], $curDate);
+
+        //service charge
+        $service_charge = $this->getServiceCharge();
+
+
+        $data['arrival'] = $result[4];
+        $data['departure'] = $this->genDate();
+        $data['amount'] = $this->formatNumber($minutes * $service_charge[1]);
+        $data['pid'] = $result[0];
+        $data['service_charge'] = $service_charge[1];
+        echo json_encode($data);
+    }
+
+    function updatePlateStatus($plate){
+        $plate = $this->sanitize($plate);
+        $sql = "update captured_images set status=1 where plate=? and status=0";
+        $result = $this->con->prepare($sql);
+        $result->execute(array($plate));
+    }
+
+    function checkOut(){
+        $pid = $this->sanitize($_POST['pid']);
+        $plate = $this->sanitize($_POST['plate']);
+        $service_charge = $this->sanitize($_POST['service_charge']);
+        $arrival = $this->sanitize($_POST['arrival']);
+        $departure = $this->sanitize($_POST['departure']);
+        $amount = $this->sanitize($_POST['amount']);
+        $paid = $this->sanitize($_POST['paid']);
+        $balance = $this->sanitize($_POST['balance']);
+        $user = $this->sanitize($_SESSION['stratekuser']);
+        $sql = "insert into transactions(pid, plate, service_charge, arrival, departure, amount, paid, balance, user) values(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $result = $this->con->prepare($sql);
+        if($result->execute(array($pid, $plate, $service_charge, $arrival, $departure, $amount, $paid, $balance, $user))){
+            $this->updateStatusPid($pid, "captured_images");
+            $this->updatePlateStatus($plate);
+
+            $this->displayMsg2("Check out completed!!!", 1);
+            $this->redirect("?monitoring");
+        }else{
+            $this->displayMsg2("Process failed...Try again..!!!", 0);
+        }
+    }
+
+    function loadTransactions($user, $start, $end){
+        $user = $this->sanitize($user);
+        if($user == "all"){
+            $sql = "select * from transactions where Date(date)>=? and Date(date)<=? order by date desc";
+            $result = $this->con->prepare($sql);
+            $result->execute(array($start, $end));
+        }else{
+            $sql = "select * from transactions where user=? and Date(date)>=? and Date(date)<=? order by date desc";
+            $result = $this->con->prepare($sql);
+            $result->execute(array($user, $start, $end));
+        }
+
+        
+
+        $data = "<table id='tableList' class='table table-bordered table-condensed table-striped table-hover'>";
+        $data .= "<thead><tr><th>No.</th><th>Plate</th><th>Amount(GH&cent;)</th><th>Paid(GH&cent;)</th><th>Balance(GH&cent;)</th><th>Date</th><th>User</th><th></th></tr></thead><tbody>";
+
+        $count = 1;
+        while($row = $result->fetch(PDO::FETCH_ASSOC)){
+            $userDetails = $this->getFullDetailsId($row['user'], "login");
+            $data .= "<tr><td>".$count."</td><td>".$row['plate']."</td><td>".$row['amount']."</td><td>".$row['paid']."</td><td>".$row['balance']."</td><td>".$row['date']."</td><td>". $userDetails[3] . "</td><td>";
+            //view details
+            $data .= "<a href='#viewDetails".$row['id']."' data-toggle='modal' class='btn btn-xs btn-success btn-link'><span class='glyphicon glyphicon-eye-open'></span></a>";
+
+            $data .= "<div class='modal fade' id='viewDetails".$row['id']."'>
+                        <div class='modal-dialog modal-sm'>
+                            <div class='modal-content'>
+                                <div class='modal-header bgblue'>
+                                    <h3 class='panel-title' style='text-align: center;'><span class='glyphicon glyphicon-info'></span> Details</h3>
+                                </div>
+                                <div class='modal-body'>
+                                    <form class='form' method='post' action='#'>
+                                        <div class='form-group'>
+                                            <div style='text-align: center;'>
+                                                <img src=\"data:image/jpeg;base64,".$row['captured_image']."\" style='width: 150px; height: auto;'/>
+                                            </div>
+                                        </div>
+                                        <div class='form-group'>
+                                            <label for='arrival'>Arrival:</label>
+                                            <input type='text' id='arrival' name='arrival' value='".$row['arrival']."' readonly='readonly'/>
+                                        </div>
+                                        <div class='form-group'>
+                                            <label for='departure'>Departure:</label>
+                                            <input type='text' id='departure' name='departure' value='".$row['departure']."' readonly='readonly'/>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                     </div>";
+
+            // admin access only
+            if($userDetails[6] == 0){
+                //edit
+                $data .= "<a href='#editDetails".$row['id']."' data-toggle='modal'  class='btn btn-xs btn-link btn-warning'><span class='glyphicon glyphicon-pencil'></span></a>";
+
+                //delete
+                $data .= "<button type='button' onclick=\"deleteReq('".$row['id']."','transactions','?transactions')\" class='btn btn-xs btn-link btn-danger'><span class='glyphicon glyphicon-remove'></span></button>";
+         }
+
+            $data .= "</td></tr>";
+            $count++;
+        }
+        $data .= "</tbody></table>";
+        $data .= "<script>$('#tableList').DataTable({responsive: true});</script>";
+        echo $data;
+    }
+
+    function updateServiceCharge(){
+        $amount = $this->sanitize($_POST['amount']);
+        $id = $this->sanitize($_POST['id']);
+        $sql = "update service_charge set amount=? where id=?";
+        $result = $this->con->prepare($sql);
+        if($result->execute(array($amount, $id))){
+            $this->displayMsg("Process Completed...", 1);
+        }else{
+            $this->displayMsg("Process failed..", 0);
+        }
+            $this->redirect("?service_charge");
+    }
+
 }//end class
