@@ -1,1 +1,1 @@
-# Smart Parking/Billing System
+# Smart Parking/Billing System (Desktop Application)
